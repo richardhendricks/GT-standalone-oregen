@@ -11,8 +11,8 @@ import api.XSTR;
 // 5 is block stones
 class testclass
 {
-	public static int mMaxY = 155;
-	public static int mMinY = 135;
+	public static int mMaxY = 55;
+	public static int mMinY = 15;
 	public static int mSize = 16;
 	public static int mSecondaryMeta = 11;
 	public static int mBetweenMeta = 12;
@@ -247,7 +247,6 @@ class testclass
 		int eX = 0;
 		int nZ = 0;
 		int sZ = 0;
-		int level = 0;
 		airBlocks=0;
 		deniedBlocks=0;
 		
@@ -267,7 +266,7 @@ class testclass
 			sZ = aChunkZ + 15 + aRandom.nextInt(mSize);
 
 			// To allow for early exit due to no ore placed in the bottom layer (probably because we are in the sky), unroll 1 pass through the loop
-			level = tMinY - 1; //Dunno why, but the first layer is actually played one below tMinY.  Go figure.
+			int level = tMinY - 1; //Dunno why, but the first layer is actually played one below tMinY.  Go figure.
 				for (int tX = wX; tX <= eX; tX++) {
 					int placeX = Math.max(1, Math.max(abs_int(wX - tX), abs_int(eX - tX)));
 					for (int tZ = nZ; tZ <= sZ; tZ++) {
@@ -397,12 +396,10 @@ class testclass
         );
 	}
 
-public static void executeWorldgenNewChunkified(boolean details, int iterations, int seed)
+public static void executeWorldgenNewChunkified(boolean details, int iterations, int seed, int aChunkX, int aChunkZ, int aSeedX, int aSeedZ)
 	{
 		Random aRandom = new XSTR(seed);
 		int[] globalPlaceCount=new int[4];	
-		int aChunkX = 16;
-		int aChunkZ = 16;
 		int aWorld = 0;
 		int tMinY = 0;
 		int wX = 0;
@@ -413,7 +410,7 @@ public static void executeWorldgenNewChunkified(boolean details, int iterations,
 		airBlocks=0;
 		deniedBlocks=0;
 		
-		System.out.println("New world gen");
+		System.out.println("Chunkified world gen");
 		
 		long startTime = System.nanoTime();
 		for(long it = 0; it < iterations; it++)
@@ -422,17 +419,44 @@ public static void executeWorldgenNewChunkified(boolean details, int iterations,
 			int[] placeCount=new int[4];
 			tMinY = mMinY + aRandom.nextInt(mMaxY - mMinY - 5);
 
-			wX = aChunkX - aRandom.nextInt(mSize); //west side
-			eX = aChunkX + 15 + aRandom.nextInt(mSize);   /////RAH BUG FIX!!! Use 15 instead of 16!
+			wX = aSeedX - aRandom.nextInt(mSize); //west side
+			eX = aSeedX + 15 + aRandom.nextInt(mSize);   /////RAH BUG FIX!!! Use 15 instead of 16!
 			
-			nZ = aChunkZ - aRandom.nextInt(mSize);     /////RAH BUG FIX!!! Move Z rands outside of FOR loop.  Otherwise it recalculate N/S every time, but not E/W
-			sZ = aChunkZ + 15 + aRandom.nextInt(mSize);
-
+			int wXChunk = Math.max(wX, aChunkX);
+			int eXChunk = Math.min(eX, aChunkX+15);
+			
+			if (wXChunk >= eXChunk) {  //No overlap between orevein and this chunk exists in X
+				// In the real code we have to do a 
+				// return false;
+				if (details)
+				{System.out.println("No overlap in X dim!");}
+				continue;
+			}
+			nZ = aSeedZ - aRandom.nextInt(mSize);     /////RAH BUG FIX!!! Move Z rands outside of FOR loop.  Otherwise it recalculate N/S every time, but not E/W
+			sZ = aSeedZ + 15 + aRandom.nextInt(mSize);
+			
+			int nZChunk = Math.max(nZ, aChunkZ);
+			int sZChunk = Math.min(sZ, aChunkZ+15);
+			if (nZChunk >= sZChunk){
+				if (details)
+				{
+					System.out.println(
+						"No overlap in Z dim!"+
+						" aSeedZ=" + aSeedZ +
+						" nZ=" + nZ +
+						" sZ=" + sZ +
+						" nZChunk=" + nZChunk +
+						" sZChunk=" + sZChunk
+					);
+				}
+				continue;
+			}
+			
 			// To allow for early exit due to no ore placed in the bottom layer (probably because we are in the sky), unroll 1 pass through the loop
-			level = tMinY - 1; //Dunno why, but the first layer is actually played one below tMinY.  Go figure.
-				for (int tX = wX; tX <= eX; tX++) {
+			level = tMinY - 1; //Dunno why, but the first layer is actually placed one below tMinY.  Go figure.
+				for (int tX = wXChunk; tX <= (eXChunk); tX++) {
 					int placeX = Math.max(1, Math.max(abs_int(wX - tX), abs_int(eX - tX)));
-					for (int tZ = nZ; tZ <= sZ; tZ++) {
+					for (int tZ = nZChunk; tZ <= (sZChunk); tZ++) {
 						int placeZ = Math.max(1, Math.max(abs_int(sZ - tZ), abs_int(nZ - tZ)));
 						if ( ((aRandom.nextInt(placeZ/mDensity) == 0) || (aRandom.nextInt(placeX/mDensity) == 0)) && (mSecondaryMeta > 0) )
 						{
@@ -448,14 +472,14 @@ public static void executeWorldgenNewChunkified(boolean details, int iterations,
 				}
 			if ((placeCount[1]+placeCount[3])==0){
 				// In the real code we have to do a 
-				// return;
+				// return false;
 				// In this simulation, just do a continue to re-start the loop.
 				continue;
 			}
 			for (level = tMinY; level < (tMinY-1+3); level++) {  // Now we do level-first oregen
-				for (int tX = wX; tX <= eX; tX++) {
+				for (int tX = wXChunk; tX <= (eXChunk); tX++) {
 					int placeX = Math.max(1, Math.max(abs_int(wX - tX), abs_int(eX - tX)));
-					for (int tZ = nZ; tZ <= sZ; tZ++) {
+					for (int tZ = nZChunk; tZ <= (sZChunk); tZ++) {
 						int placeZ = Math.max(1, Math.max(abs_int(sZ - tZ), abs_int(nZ - tZ)));
 						if ( ((aRandom.nextInt(placeZ/mDensity) == 0) || (aRandom.nextInt(placeX/mDensity) == 0)) && (mSecondaryMeta > 0) )
 						{
@@ -472,9 +496,9 @@ public static void executeWorldgenNewChunkified(boolean details, int iterations,
 			}
 			// Low Middle layer is between + sporadic
 			// level should be = tMinY-1+3 from end of for loop
-				for (int tX = wX; tX <= eX; tX++) {
+				for (int tX = wXChunk; tX <= (eXChunk); tX++) {
 					int placeX = Math.max(1, Math.max(abs_int(wX - tX), abs_int(eX - tX)));
-					for (int tZ = nZ; tZ <= sZ; tZ++) {
+					for (int tZ = nZChunk; tZ <= (sZChunk); tZ++) {
 						int placeZ = Math.max(1, Math.max(abs_int(sZ - tZ), abs_int(nZ - tZ)));
 						if ((aRandom.nextInt(2) == 0) && ((aRandom.nextInt(placeZ/mDensity) == 0) || (aRandom.nextInt(placeX/mDensity) == 0)) && (mBetweenMeta > 0) ) {  // Between are only 1 per vertical column, reduce by 1/2 to compensate
 							if (setOreBlock(aWorld, tX, level, tZ, mBetweenMeta, false, false)) {
@@ -489,9 +513,9 @@ public static void executeWorldgenNewChunkified(boolean details, int iterations,
 				}
 			// High Middle layer is between + primary + sporadic
 			level++; // Increment level to next layer
-				for (int tX = wX; tX <= eX; tX++) {
+				for (int tX = wXChunk; tX <= (eXChunk); tX++) {
 					int placeX = Math.max(1, Math.max(abs_int(wX - tX), abs_int(eX - tX)));
-					for (int tZ = nZ; tZ <= sZ; tZ++) {
+					for (int tZ = nZChunk; tZ <= (sZChunk); tZ++) {
 						int placeZ = Math.max(1, Math.max(abs_int(sZ - tZ), abs_int(nZ - tZ)));
 						if ((aRandom.nextInt(2) == 0) && ((aRandom.nextInt(placeZ/mDensity) == 0) || (aRandom.nextInt(placeX/mDensity) == 0)) && (mBetweenMeta > 0) ) {  // Between are only 1 per vertical column, reduce by 1/2 to compensate
 							if (setOreBlock(aWorld, tX, level, tZ, mBetweenMeta, false, false)) {
@@ -512,9 +536,9 @@ public static void executeWorldgenNewChunkified(boolean details, int iterations,
 			// Top two layers are primary + sporadic
 			level++; // Increment level to next layer
 			for( ; level < (tMinY + 6); level++){ // should do two layers
-				for (int tX = wX; tX <= eX; tX++) {
+				for (int tX = wXChunk; tX <= (eXChunk); tX++) {
 					int placeX = Math.max(1, Math.max(abs_int(wX - tX), abs_int(eX - tX)));
-					for (int tZ = nZ; tZ <= sZ; tZ++) {
+					for (int tZ = nZChunk; tZ <= (sZChunk); tZ++) {
 						int placeZ = Math.max(1, Math.max(abs_int(sZ - tZ), abs_int(nZ - tZ)));
 						if ( ((aRandom.nextInt(placeZ/mDensity) == 0) || (aRandom.nextInt(placeX/mDensity) == 0)) && (mPrimaryMeta > 0) ) {
 							if (setOreBlock(aWorld, tX, level, tZ, mPrimaryMeta, false, false)) {
@@ -566,7 +590,8 @@ public class performancetest
 	{
 		testclass PT = new testclass();
 		
-		testclass.executeWorldgenClassic(false, 100, -10, 16, 16);
-		testclass.executeWorldgenNew(false, 100, -10, 16, 16);
+		// testclass.executeWorldgenClassic(true, 1, -10, 16, 16);
+		testclass.executeWorldgenNew(true, 1, -10, 16, 16);
+		testclass.executeWorldgenNewChunkified(true, 1, -10, 0, 0, 16, 16);
 	}
 }
