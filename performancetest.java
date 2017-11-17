@@ -742,7 +742,7 @@ public static void run(boolean details, int iterations, int seed, int aChunkX, i
         int tZ = z*16 + stoneRNG.nextInt(16);
         //Determine the XYZ sizes of the stoneseed
         double xSize = sizeConversion[stoneRNG.nextInt(sizeConversion.length)];
-        double ySize = sizeConversion[stoneRNG.nextInt(sizeConversion.length)];
+        double ySize = sizeConversion[stoneRNG.nextInt(sizeConversion.length)/2];  // Skew the ySize towards the larger sizes, more long skinny pipes
         double zSize = sizeConversion[stoneRNG.nextInt(sizeConversion.length)];
 
         //Equation for an ellipsoid centered around 0,0,0
