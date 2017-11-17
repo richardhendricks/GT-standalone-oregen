@@ -214,11 +214,6 @@ public class XSTR extends Random {
      * @since 1.2
      */
     public int nextInt(int bound) {
-        if (bound <= 0) {
-		  System.out.println("Error, bounds requested <= 0");
-          return (0);
-        }
-
         /*int r = next(31);
         int m = bound - 1;
         if ((bound & m) == 0) // i.e., bound is a power of 2
